@@ -1,0 +1,331 @@
+/* ---------------------------------------------------------------
+   index.css — Tasarım sistemi.
+
+   Renk dili: her bölüm kendi "--accent" rengini taşır ve bu
+   değişken başlık şeridine, kart kenarına ve fiyata yansır.
+   İmza öğesi: klasik lokanta menülerindeki noktalı fiyat çizgisi.
+--------------------------------------------------------------- */
+
+:root {
+  --ink: #23201a;        /* Ana metin */
+  --paper: #efe9dc;      /* Zemin */
+  --card: #fbf8f1;       /* Kart zemini */
+  --line: #d8cfbc;       /* İnce çizgiler */
+  --header: #1c2b26;     /* Üst şerit (koyu çam) */
+  --font-display: "Marcellus", serif;
+  --font-body: "Figtree", system-ui, sans-serif;
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+}
+
+/* ================= Üst şerit ================= */
+.site-header {
+  /* Arka plan fotoğrafı Header.tsx'ten inline style ile gelir;
+     fotoğraf yoksa düz koyu renk görünür. */
+  background-color: var(--header);
+  background-size: cover;
+  background-position: center;
+  color: #f4efe2;
+  border-bottom: 4px solid #c8a24a; /* İnce safran şerit */
+}
+/* Fotoğrafın üzerinde yazı okunabilsin diye koyu degrade katman */
+.header-overlay {
+  background: linear-gradient(
+    to top,
+    rgba(18, 28, 24, 0.88) 0%,
+    rgba(18, 28, 24, 0.45) 60%,
+    rgba(18, 28, 24, 0.35) 100%
+  );
+}
+.hero-inner {
+  min-height: 180px;
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+}
+.brand {
+  font-family: var(--font-display);
+  font-size: 2.1rem;
+  letter-spacing: 0.03em;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+.slogan {
+  font-size: 0.85rem;
+  opacity: 0.75;
+}
+.btn-header {
+  background: transparent;
+  color: #f4efe2;
+  border: 1px solid rgba(244, 239, 226, 0.4);
+}
+.btn-header:hover {
+  background: rgba(244, 239, 226, 0.12);
+  color: #fff;
+}
+.cart-badge {
+  background: #c8a24a;
+  color: var(--header);
+}
+
+/* ================= Kategori gezinme ================= */
+.category-nav {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--paper);
+  border-bottom: 1px solid var(--line);
+}
+.category-pill {
+  --pill-accent: var(--header);
+  border: 1.5px solid var(--pill-accent);
+  color: var(--pill-accent);
+  background: transparent;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+.category-pill:hover {
+  background: var(--pill-accent);
+  color: #fff;
+}
+
+/* ================= Bölümler ================= */
+.category-section {
+  margin-bottom: 2.5rem;
+  scroll-margin-top: 70px; /* Yapışkan menünün altına denk gelsin */
+}
+.section-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.9rem;
+  margin-bottom: 1rem;
+  border-left: 6px solid var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  border-radius: 0 8px 8px 0;
+}
+.section-emoji { font-size: 1.6rem; }
+.section-title {
+  font-family: var(--font-display);
+  font-size: 1.45rem;
+  color: var(--accent);
+}
+.section-tagline {
+  font-size: 0.85rem;
+  color: color-mix(in srgb, var(--ink) 60%, transparent);
+}
+
+/* ================= Ürün kartı ================= */
+.product-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-bottom: 3px solid var(--accent);
+  border-radius: 10px;
+  padding: 0.85rem 1rem;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  cursor: pointer;
+}
+.product-card:hover,
+.product-card:focus-visible {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(35, 32, 26, 0.12);
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.product-thumb {
+  width: 84px;
+  height: 84px;
+  object-fit: cover; /* Fotoğrafı kırparak kareye sığdırır, ezmez */
+  border-radius: 10px;
+  flex-shrink: 0;
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+/* Fotoğraf yoksa/yüklenemezse aynı boyutta emoji kutusu */
+.img-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+}
+.min-w-0 { min-width: 0; } /* Uzun isimlerde taşmayı önler */
+.product-name {
+  font-weight: 600;
+  font-size: 1.02rem;
+  white-space: nowrap;
+}
+/* İmza öğesi: fiyatı isme bağlayan noktalı çizgi */
+.dotted-leader {
+  flex: 1;
+  border-bottom: 2px dotted color-mix(in srgb, var(--ink) 35%, transparent);
+  transform: translateY(-4px);
+  min-width: 24px;
+}
+.product-price {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  color: var(--accent);
+  white-space: nowrap;
+}
+.product-meta {
+  font-size: 0.78rem;
+  color: color-mix(in srgb, var(--ink) 55%, transparent);
+  margin-top: 0.25rem;
+}
+
+/* ================= Ürün detayı (aynı sayfada) ================= */
+.detail-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(28, 43, 38, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  padding: 1rem;
+}
+.detail-card {
+  background: var(--card);
+  border-top: 6px solid var(--accent);
+  border-radius: 14px;
+  max-width: 420px;
+  width: 100%;
+  overflow: hidden; /* Fotoğrafın köşeleri karta uysun */
+  text-align: center;
+  position: relative;
+  animation: pop-in 0.18s ease;
+}
+.detail-hero {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  display: block;
+}
+.detail-hero.img-fallback {
+  font-size: 4rem;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+.detail-body { padding: 1.25rem 1.5rem 1.5rem; }
+@keyframes pop-in {
+  from { transform: scale(0.94); opacity: 0; }
+  to   { transform: scale(1);    opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .detail-card { animation: none; }
+  .product-card { transition: none; }
+}
+.detail-close {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  background-color: rgba(255, 255, 255, 0.85);
+  border-radius: 50%;
+  padding: 0.55rem;
+}
+.detail-title {
+  font-family: var(--font-display);
+  color: var(--accent);
+}
+.detail-description {
+  color: color-mix(in srgb, var(--ink) 75%, transparent);
+}
+.info-chip {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  border-radius: 999px;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.85rem;
+}
+.detail-price {
+  font-family: var(--font-display);
+  font-size: 2.4rem;
+  color: var(--accent);
+  margin-bottom: 0.75rem;
+}
+.btn-add {
+  background: var(--header);
+  color: #f4efe2;
+  border: none;
+  font-weight: 600;
+}
+.btn-add:hover { background: #2a4038; color: #fff; }
+.btn-add:disabled { background: #8a938f; }
+
+/* ================= Sepet ve yönetici çekmeceleri ================= */
+.drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(28, 43, 38, 0.45);
+  z-index: 60;
+}
+.cart-drawer,
+.admin-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100dvh;
+  width: min(400px, 92vw);
+  background: var(--card);
+  z-index: 70;
+  padding: 1.25rem;
+  overflow-y: auto;
+  box-shadow: -8px 0 24px rgba(35, 32, 26, 0.2);
+  transform: translateX(100%);
+  transition: transform 0.2s ease;
+}
+.cart-drawer.open,
+.admin-panel.open { transform: translateX(0); }
+
+.cart-line {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px dashed var(--line);
+}
+.qty { min-width: 1.5rem; text-align: center; font-weight: 600; }
+.cart-total {
+  padding-top: 0.75rem;
+  font-size: 1.1rem;
+}
+
+/* ================= Yönetici paneli ================= */
+.pin-card {
+  background: var(--card);
+  border-radius: 14px;
+  padding: 1.5rem;
+  max-width: 320px;
+  margin: 20vh auto 0;
+}
+.admin-section-title {
+  font-family: var(--font-display);
+  border-bottom: 2px solid var(--line);
+  padding-bottom: 0.3rem;
+  margin-top: 1.25rem;
+}
+.admin-product-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0;
+  border-bottom: 1px dashed var(--line);
+  font-size: 0.92rem;
+}
+.color-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ================= Alt bilgi ================= */
+.site-footer {
+  text-align: center;
+  font-size: 0.8rem;
+  color: color-mix(in srgb, var(--ink) 50%, transparent);
+  border-top: 1px solid var(--line);
+  padding-top: 1rem;
+  margin-top: 2rem;
+}
