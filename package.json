@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "qr": "node scripts/generate-qr.js"
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.2.7",
@@ -20,6 +21,7 @@
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.1",
+    "qrcode": "^1.5.4",
     "typescript": "^5.5.3",
     "vite": "^5.4.8"
   }
