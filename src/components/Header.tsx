@@ -3,14 +3,14 @@
 // arka planda lokanta fotoğrafı, üzerinde karartma katmanı ve
 // restoran adı bulunur. Fotoğraf yönetici panelinden değiştirilir.
 // ---------------------------------------------------------------
+import { Link } from "react-router-dom";
 import { useAppSelector } from "../store/hooks";
 
 interface HeaderProps {
   onOpenCart: () => void;
-  onOpenAdmin: () => void;
 }
 
-export default function Header({ onOpenCart, onOpenAdmin }: HeaderProps) {
+export default function Header({ onOpenCart }: HeaderProps) {
   const restaurant = useAppSelector((s) => s.menu.restaurant);
   // Sepetteki toplam adet (rozet için)
   const cartCount = useAppSelector((s) =>
@@ -47,9 +47,9 @@ export default function Header({ onOpenCart, onOpenAdmin }: HeaderProps) {
                 </span>
               )}
             </button>
-            <button className="btn btn-header" onClick={onOpenAdmin} aria-label="Yönetici paneli">
+            <Link className="btn btn-header" to="/admin" aria-label="Yönetici paneli">
               ⚙️
-            </button>
+            </Link>
           </div>
         </div>
       </div>

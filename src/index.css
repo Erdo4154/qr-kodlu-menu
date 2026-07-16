@@ -320,6 +320,124 @@ body {
   flex-shrink: 0;
 }
 
+/* ================= Yönetici sayfası (/admin) ================= */
+/* Müşteri menüsünden bilinçli olarak farklı görünür: koyu üst şerit +
+   "Düzenleme Modu" rozeti, kullanıcı her an hangi modda olduğunu anlar. */
+.admin-gate {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--header);
+  padding: 1rem;
+}
+.admin-gate-card {
+  background: var(--card);
+  border-radius: 14px;
+  padding: 2rem;
+  max-width: 360px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+}
+.admin-gate-kicker {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #c8a24a;
+  font-weight: 700;
+  margin-bottom: 0.35rem;
+}
+.admin-gate-title {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  margin-bottom: 0.5rem;
+}
+
+.admin-page {
+  min-height: 100dvh;
+  background: var(--paper);
+}
+.admin-topbar {
+  background: var(--header);
+  color: #f4efe2;
+  padding: 1rem 0;
+  border-bottom: 4px solid #c8a24a;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.admin-topbar-title {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+}
+.admin-mode-badge {
+  background: #c8a24a;
+  color: var(--header);
+  font-weight: 700;
+  font-size: 0.78rem;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  animation: pulse-badge 2s ease-in-out infinite;
+}
+@keyframes pulse-badge {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.65; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .admin-mode-badge { animation: none; }
+}
+
+.admin-tabs { gap: 0.5rem; }
+.admin-tab {
+  border: 1.5px solid var(--header);
+  color: var(--header);
+  background: transparent;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  padding: 0.4rem 1rem;
+}
+.admin-tab.active,
+.admin-tab:hover {
+  background: var(--header) !important;
+  color: #fff !important;
+}
+
+.admin-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-left: 6px solid #c8a24a;
+  border-radius: 10px;
+  padding: 1.5rem;
+}
+.admin-card-danger { border-left-color: #9e2b25; }
+.admin-card-title {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  color: var(--header);
+  margin-bottom: 0.25rem;
+}
+.admin-card-hint {
+  font-size: 0.85rem;
+  color: color-mix(in srgb, var(--ink) 55%, transparent);
+  margin-bottom: 1.25rem;
+}
+.admin-product-list {
+  max-height: 420px;
+  overflow-y: auto;
+}
+.admin-count-badge {
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 700;
+  background: color-mix(in srgb, var(--header) 10%, transparent);
+  color: var(--header);
+  border-radius: 999px;
+  padding: 0.1rem 0.6rem;
+  vertical-align: middle;
+}
+
 /* ================= Alt bilgi ================= */
 .site-footer {
   text-align: center;

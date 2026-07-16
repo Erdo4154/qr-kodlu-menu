@@ -4,6 +4,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { Provider } from "react-redux";
+import { HashRouter } from "react-router-dom";
 import { store } from "./store/store";
 import App from "./App";
 
@@ -11,10 +12,14 @@ import App from "./App";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./index.css";
 
+// HashRouter: Vercel gibi statik barındırmada sunucu tarafında ekstra
+// yönlendirme (rewrite) ayarı gerektirmez — /admin, /#/admin olarak çalışır.
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <Provider store={store}>
-      <App />
+      <HashRouter>
+        <App />
+      </HashRouter>
     </Provider>
   </React.StrictMode>
 );
