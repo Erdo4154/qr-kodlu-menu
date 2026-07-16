@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Nar Lokantası · Menüye Git</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Marcellus&family=Figtree:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --ink: #23201a;
+        --paper: #efe9dc;
+        --card: #fbf8f1;
+        --line: #d8cfbc;
+        --header: #1c2b26;
+        --gold: #c8a24a;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100dvh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--paper);
+        color: var(--ink);
+        font-family: "Figtree", system-ui, sans-serif;
+        padding: 1rem;
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-top: 6px solid var(--gold);
+        border-radius: 14px;
+        max-width: 360px;
+        width: 100%;
+        padding: 2.5rem 2rem;
+        text-align: center;
+        box-shadow: 0 10px 30px rgba(35, 32, 26, 0.12);
+      }
+      .brand {
+        font-family: "Marcellus", serif;
+        font-size: 1.8rem;
+        letter-spacing: 0.03em;
+        color: var(--header);
+        margin: 0 0 0.4rem;
+      }
+      .slogan {
+        font-size: 0.9rem;
+        opacity: 0.7;
+        margin: 0 0 1.75rem;
+      }
+      .btn-site {
+        display: inline-block;
+        background: var(--header);
+        color: #f4efe2;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 1.05rem;
+        padding: 0.85rem 2rem;
+        border-radius: 999px;
+        transition: background 0.15s ease, transform 0.15s ease;
+      }
+      .btn-site:hover,
+      .btn-site:focus-visible {
+        background: #2a4038;
+        color: #fff;
+        transform: translateY(-1px);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <p class="brand">Nar Lokantası</p>
+      <p class="slogan">QR kodunuz okundu, hoş geldiniz!</p>
+      <a class="btn-site" href="https://qr-kodlu-menu-qwu6-rose.vercel.app/">Siteye Git</a>
+    </div>
+  </body>
+</html>
