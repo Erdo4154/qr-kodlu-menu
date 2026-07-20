@@ -29,6 +29,7 @@ import {
   resetMenu,
 } from "../store/menuSlice";
 import type { Product } from "../types";
+import ConfirmModal from "../components/ConfirmModal";
 
 const ADMIN_PIN = "1234"; // Demo amaçlı. Değiştirmeyi unutmayın!
 
@@ -95,6 +96,13 @@ function AdminDashboard() {
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null); // null = yeni ürün
   const [newCategoryName, setNewCategoryName] = useState("");
+  const [confirmState, setConfirmState] = useState<{
+    title: string;
+    message: string;
+    confirmLabel?: string;
+    onConfirm: () => void;
+  } | null>(null);
+  const closeConfirm = () => setConfirmState(null);
 
   const startEditing = (product: Product) => {
     setEditingId(product.id);
@@ -236,11 +244,16 @@ function AdminDashboard() {
                 />
                 <button
                   className="btn btn-sm btn-outline-danger"
-                  onClick={() => {
-                    if (confirm(`"${cat.name}" bölümü ve içindeki tüm ürünler silinsin mi?`)) {
-                      dispatch(deleteCategory(cat.id));
-                    }
-                  }}
+                  onClick={() =>
+                    setConfirmState({
+                      title: "Bölümü sil",
+                      message: `"${cat.name}" bölümü ve içindeki tüm ürünler silinsin mi?`,
+                      onConfirm: () => {
+                        dispatch(deleteCategory(cat.id));
+                        closeConfirm();
+                      },
+                    })
+                  }
                 >
                   🗑
                 </button>
@@ -392,9 +405,16 @@ function AdminDashboard() {
                       </button>
                       <button
                         className="btn btn-sm btn-outline-danger"
-                        onClick={() => {
-                          if (confirm(`"${product.name}" silinsin mi?`)) dispatch(deleteProduct(product.id));
-                        }}
+                        onClick={() =>
+                          setConfirmState({
+                            title: "Ürünü sil",
+                            message: `"${product.name}" silinsin mi?`,
+                            onConfirm: () => {
+                              dispatch(deleteProduct(product.id));
+                              closeConfirm();
+                            },
+                          })
+                        }
                       >
                         🗑
                       </button>
@@ -416,17 +436,33 @@ function AdminDashboard() {
             </p>
             <button
               className="btn btn-outline-danger"
-              onClick={() => {
-                if (confirm("Tüm değişiklikler silinip örnek menüye dönülsün mü?")) {
-                  dispatch(resetMenu());
-                }
-              }}
+              onClick={() =>
+                setConfirmState({
+                  title: "Menüyü sıfırla",
+                  message: "Tüm değişiklikler silinip örnek menüye dönülsün mü? Bu işlem geri alınamaz.",
+                  confirmLabel: "Evet, sıfırla",
+                  onConfirm: () => {
+                    dispatch(resetMenu());
+                    closeConfirm();
+                  },
+                })
+              }
             >
               Menüyü sıfırla
             </button>
           </section>
         )}
       </div>
+
+      <ConfirmModal
+        open={confirmState !== null}
+        title={confirmState?.title ?? ""}
+        message={confirmState?.message ?? ""}
+        confirmLabel={confirmState?.confirmLabel}
+        danger
+        onConfirm={() => confirmState?.onConfirm()}
+        onCancel={closeConfirm}
+      />
     </div>
   );
 }

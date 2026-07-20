@@ -10,7 +10,7 @@ import Header from "../components/Header";
 import CategoryNav from "../components/CategoryNav";
 import CategorySection from "../components/CategorySection";
 import ProductModal from "../components/ProductModal";
-import CartDrawer from "../components/CartDrawer";
+import CartModal from "../components/CartModal";
 
 export default function MenuPage() {
   const { categories, products } = useAppSelector((s) => s.menu);
@@ -48,7 +48,7 @@ export default function MenuPage() {
         accent={selectedAccent}
         onClose={() => setSelectedProduct(null)}
       />
-      <CartDrawer open={cartOpen} onClose={() => setCartOpen(false)} />
+      <CartModal open={cartOpen} onClose={() => setCartOpen(false)} />
     </>
   );
 }

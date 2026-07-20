@@ -1,25 +1,27 @@
 // ---------------------------------------------------------------
-// CartDrawer.tsx — Sağdan kayan sepet paneli. Müşteri adet
-// artırıp azaltır, masa numarasını yazar ve "Siparişi gönder"e
-// basar. Demo aşamasında sipariş ekranda onaylanır; gerçek bir
-// restoranda bu nokta mutfağa/kasaya giden bir isteğe bağlanır
-// (README'de anlatıldı).
+// CartModal.tsx — Sepet, ürün detayıyla aynı görsel dili paylaşan
+// ortada açılan bir modal. Müşteri adet artırıp azaltır, masa
+// numarasını yazar ve "Siparişi gönder"e basar. Demo aşamasında
+// sipariş ekranda onaylanır; gerçek bir restoranda bu nokta
+// mutfağa/kasaya giden bir isteğe bağlanır (README'de anlatıldı).
 // ---------------------------------------------------------------
 import { useState } from "react";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { addToCart, decreaseQuantity, removeFromCart, clearCart } from "../store/cartSlice";
 
-interface CartDrawerProps {
+interface CartModalProps {
   open: boolean;
   onClose: () => void;
 }
 
-export default function CartDrawer({ open, onClose }: CartDrawerProps) {
+export default function CartModal({ open, onClose }: CartModalProps) {
   const dispatch = useAppDispatch();
   const cartItems = useAppSelector((s) => s.cart.items);
   const products = useAppSelector((s) => s.menu.products);
   const [tableNo, setTableNo] = useState("");
   const [orderSent, setOrderSent] = useState(false);
+
+  if (!open) return null;
 
   // Sepet satırlarını ürün bilgileriyle birleştir.
   // Ürün menüden silinmişse satırı atla (filter Boolean hilesi).
@@ -43,11 +45,14 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
   };
 
   return (
-    <>
-      {/* Karartı */}
-      {open && <div className="drawer-backdrop" onClick={handleClose} />}
-
-      <aside className={`cart-drawer ${open ? "open" : ""}`} aria-hidden={!open}>
+    <div className="detail-backdrop" onClick={handleClose}>
+      <div
+        className="cart-modal-card"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Sepetiniz"
+      >
         <div className="d-flex justify-content-between align-items-center mb-3">
           <h4 className="mb-0">Sepetiniz</h4>
           <button className="btn-close" onClick={handleClose} aria-label="Kapat" />
@@ -69,39 +74,41 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
           </p>
         ) : (
           <>
-            {lines.map(({ product, quantity }) => (
-              <div key={product.id} className="cart-line">
-                <div className="flex-grow-1">
-                  <div className="fw-semibold">{product.name}</div>
-                  <small className="text-muted">{product.price} ₺ / adet</small>
+            <div className="cart-modal-lines">
+              {lines.map(({ product, quantity }) => (
+                <div key={product.id} className="cart-line">
+                  <div className="flex-grow-1">
+                    <div className="fw-semibold">{product.name}</div>
+                    <small className="text-muted">{product.price} ₺ / adet</small>
+                  </div>
+                  {/* Adet kontrolleri */}
+                  <div className="d-flex align-items-center gap-2">
+                    <button
+                      className="btn btn-sm btn-outline-secondary"
+                      onClick={() => dispatch(decreaseQuantity(product.id))}
+                      aria-label="Azalt"
+                    >
+                      −
+                    </button>
+                    <span className="qty">{quantity}</span>
+                    <button
+                      className="btn btn-sm btn-outline-secondary"
+                      onClick={() => dispatch(addToCart(product.id))}
+                      aria-label="Artır"
+                    >
+                      +
+                    </button>
+                    <button
+                      className="btn btn-sm btn-outline-danger"
+                      onClick={() => dispatch(removeFromCart(product.id))}
+                      aria-label="Satırı sil"
+                    >
+                      🗑
+                    </button>
+                  </div>
                 </div>
-                {/* Adet kontrolleri */}
-                <div className="d-flex align-items-center gap-2">
-                  <button
-                    className="btn btn-sm btn-outline-secondary"
-                    onClick={() => dispatch(decreaseQuantity(product.id))}
-                    aria-label="Azalt"
-                  >
-                    −
-                  </button>
-                  <span className="qty">{quantity}</span>
-                  <button
-                    className="btn btn-sm btn-outline-secondary"
-                    onClick={() => dispatch(addToCart(product.id))}
-                    aria-label="Artır"
-                  >
-                    +
-                  </button>
-                  <button
-                    className="btn btn-sm btn-outline-danger"
-                    onClick={() => dispatch(removeFromCart(product.id))}
-                    aria-label="Satırı sil"
-                  >
-                    🗑
-                  </button>
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
 
             <div className="cart-total d-flex justify-content-between">
               <span>Toplam</span>
@@ -133,7 +140,7 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
             )}
           </>
         )}
-      </aside>
-    </>
+      </div>
+    </div>
   );
 }
