@@ -1,12 +1,12 @@
 // ---------------------------------------------------------------
-// AdminPage.tsx — Yönetici paneli artık kendi sayfası (/admin).
+// AdminPage.tsx — Yönetici paneli kendi sayfası (/admin).
 // Müşteri menüsünden görsel olarak bilinçli şekilde ayrışır:
 // koyu "düzenleme modu" üst şeridi + "Siteye Dön" bağlantısı,
 // böylece kullanıcı hangi modda olduğunu her zaman anlar.
 //
 //   • Restoran adı ve sloganını değiştirme
-//   • Bölüm (kategori) ekleme / yeniden adlandırma / silme
-//   • Ürün ekleme / düzenleme / silme
+//   • Menü: bölüme tıklayınca altında o bölümün ürünleri açılır
+//     (akordeon), oradan doğrudan ekleme/düzenleme/silme yapılır
 //   • Menüyü fabrika ayarlarına döndürme
 //
 // Yapılan her değişiklik Redux'a, oradan da localStorage'a yazılır;
@@ -30,21 +30,11 @@ import {
 } from "../store/menuSlice";
 import type { Product } from "../types";
 import ConfirmModal from "../components/ConfirmModal";
+import ProductFormModal, { type ProductFormValues } from "../components/ProductFormModal";
 
 const ADMIN_PIN = "1234"; // Demo amaçlı. Değiştirmeyi unutmayın!
 
-const emptyForm = {
-  name: "",
-  description: "",
-  emoji: "🍽️",
-  image: "",
-  categoryId: "",
-  price: "",
-  grams: "",
-  calories: "",
-};
-
-type Tab = "restoran" | "bolumler" | "urunler" | "gelismis";
+type Tab = "restoran" | "menu" | "gelismis";
 
 export default function AdminPage() {
   const [unlocked, setUnlocked] = useState(false);
@@ -93,9 +83,15 @@ function AdminDashboard() {
   const { restaurant, categories, products } = useAppSelector((s) => s.menu);
 
   const [tab, setTab] = useState<Tab>("restoran");
-  const [form, setForm] = useState(emptyForm);
-  const [editingId, setEditingId] = useState<string | null>(null); // null = yeni ürün
   const [newCategoryName, setNewCategoryName] = useState("");
+  // Akordeon: aynı anda tek bölüm açık kalır. null = hepsi kapalı.
+  const [expandedCategoryId, setExpandedCategoryId] = useState<string | null>(null);
+  // Ürün formu modalı: hangi bölümden açıldığını ve (varsa) hangi ürünü
+  // düzenlediğini tutar. null = kapalı.
+  const [productModal, setProductModal] = useState<{
+    categoryId: string;
+    product: Product | null;
+  } | null>(null);
   const [confirmState, setConfirmState] = useState<{
     title: string;
     message: string;
@@ -103,44 +99,6 @@ function AdminDashboard() {
     onConfirm: () => void;
   } | null>(null);
   const closeConfirm = () => setConfirmState(null);
-
-  const startEditing = (product: Product) => {
-    setEditingId(product.id);
-    setTab("urunler");
-    setForm({
-      name: product.name,
-      description: product.description,
-      emoji: product.emoji,
-      image: product.image ?? "",
-      categoryId: product.categoryId,
-      price: String(product.price),
-      grams: String(product.grams),
-      calories: String(product.calories),
-    });
-  };
-
-  const saveProduct = () => {
-    if (!form.name.trim() || !form.categoryId || !form.price) return;
-
-    const data = {
-      name: form.name.trim(),
-      description: form.description.trim(),
-      emoji: form.emoji || "🍽️",
-      image: form.image.trim(),
-      categoryId: form.categoryId,
-      price: Number(form.price) || 0,
-      grams: Number(form.grams) || 0,
-      calories: Number(form.calories) || 0,
-    };
-
-    if (editingId) {
-      dispatch(updateProduct({ id: editingId, ...data }));
-    } else {
-      dispatch(addProduct(data));
-    }
-    setForm(emptyForm);
-    setEditingId(null);
-  };
 
   const handleAddCategory = () => {
     if (!newCategoryName.trim()) return;
@@ -157,7 +115,47 @@ function AdminDashboard() {
     setNewCategoryName("");
   };
 
-  const isFormValid = form.name.trim() !== "" && form.categoryId !== "" && form.price !== "";
+  const handleProductSubmit = (values: ProductFormValues) => {
+    const data = {
+      name: values.name.trim(),
+      description: values.description.trim(),
+      emoji: values.emoji || "🍽️",
+      image: values.image.trim(),
+      categoryId: values.categoryId,
+      price: Number(values.price) || 0,
+      grams: Number(values.grams) || 0,
+      calories: Number(values.calories) || 0,
+    };
+
+    if (productModal?.product) {
+      dispatch(updateProduct({ id: productModal.product.id, ...data }));
+    } else {
+      dispatch(addProduct(data));
+    }
+    setProductModal(null);
+  };
+
+  const askDeleteCategory = (categoryId: string, categoryName: string) => {
+    setConfirmState({
+      title: "Bölümü sil",
+      message: `"${categoryName}" bölümü ve içindeki tüm ürünler silinsin mi?`,
+      onConfirm: () => {
+        dispatch(deleteCategory(categoryId));
+        closeConfirm();
+      },
+    });
+  };
+
+  const askDeleteProduct = (productId: string, productName: string) => {
+    setConfirmState({
+      title: "Ürünü sil",
+      message: `"${productName}" silinsin mi?`,
+      onConfirm: () => {
+        dispatch(deleteProduct(productId));
+        closeConfirm();
+      },
+    });
+  };
 
   return (
     <div className="admin-page">
@@ -180,8 +178,7 @@ function AdminDashboard() {
           {(
             [
               ["restoran", "🏠 Restoran"],
-              ["bolumler", "📋 Bölümler"],
-              ["urunler", "🍽️ Ürünler"],
+              ["menu", "📋 Menü"],
               ["gelismis", "⚠️ Gelişmiş"],
             ] as [Tab, string][]
           ).map(([key, label]) => (
@@ -229,204 +226,120 @@ function AdminDashboard() {
           </section>
         )}
 
-        {/* ===== 2) Bölümler ===== */}
-        {tab === "bolumler" && (
-          <section className="admin-card">
-            <h2 className="admin-card-title">Bölümler</h2>
-            <p className="admin-card-hint">Menüdeki kategoriler ve renkleri.</p>
-            {categories.map((cat) => (
-              <div key={cat.id} className="d-flex gap-2 mb-2 align-items-center">
-                <span className="color-dot" style={{ background: cat.accent }} title="Bölüm rengi" />
+        {/* ===== 2) Menü: bölüm + o bölümün ürünleri tek akordeonda ===== */}
+        {tab === "menu" && (
+          <>
+            <p className="admin-card-hint mb-3">
+              Bir bölüme tıklayın, altında o bölümün ürünleri açılsın — oradan doğrudan
+              ekleyin, düzenleyin ya da silin.
+            </p>
+
+            <div className="category-accordion mb-3">
+              {categories.map((cat) => {
+                const catProducts = products.filter((p) => p.categoryId === cat.id);
+                const isOpen = expandedCategoryId === cat.id;
+                return (
+                  <div
+                    key={cat.id}
+                    className="category-accordion-item"
+                    style={{ ["--cat-accent" as string]: cat.accent }}
+                  >
+                    <button
+                      className="category-accordion-header"
+                      onClick={() => setExpandedCategoryId(isOpen ? null : cat.id)}
+                      aria-expanded={isOpen}
+                    >
+                      <span className="color-dot" style={{ background: cat.accent }} />
+                      <span className="category-accordion-name">
+                        {cat.emoji} {cat.name}
+                      </span>
+                      <span className="admin-count-badge">{catProducts.length}</span>
+                      <span className={`accordion-chevron ${isOpen ? "open" : ""}`}>▾</span>
+                    </button>
+
+                    {isOpen && (
+                      <div className="category-accordion-body">
+                        {/* Bölüm adı + silme */}
+                        <div className="d-flex gap-2 mb-3 align-items-center">
+                          <input
+                            className="form-control form-control-sm"
+                            value={cat.name}
+                            onChange={(e) =>
+                              dispatch(updateCategory({ ...cat, name: e.target.value }))
+                            }
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                          <button
+                            className="btn btn-sm btn-outline-danger text-nowrap"
+                            onClick={() => askDeleteCategory(cat.id, cat.name)}
+                          >
+                            🗑 Bölümü sil
+                          </button>
+                        </div>
+
+                        {/* O bölümün ürünleri */}
+                        {catProducts.length === 0 ? (
+                          <p className="text-muted small">Bu bölümde henüz ürün yok.</p>
+                        ) : (
+                          <div className="admin-product-list mb-2">
+                            {catProducts.map((product) => (
+                              <div key={product.id} className="admin-product-row">
+                                <span className="flex-grow-1">
+                                  {product.emoji} {product.name}{" "}
+                                  <small className="text-muted">— {product.price} ₺</small>
+                                </span>
+                                <button
+                                  className="btn btn-sm btn-outline-secondary"
+                                  onClick={() =>
+                                    setProductModal({ categoryId: cat.id, product })
+                                  }
+                                >
+                                  ✏️
+                                </button>
+                                <button
+                                  className="btn btn-sm btn-outline-danger"
+                                  onClick={() => askDeleteProduct(product.id, product.name)}
+                                >
+                                  🗑
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        <button
+                          className="btn btn-sm btn-add"
+                          onClick={() => setProductModal({ categoryId: cat.id, product: null })}
+                        >
+                          + Ürün ekle
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Yeni bölüm ekle */}
+            <section className="admin-card">
+              <h2 className="admin-card-title">Yeni bölüm ekle</h2>
+              <div className="d-flex gap-2">
                 <input
                   className="form-control form-control-sm"
-                  value={cat.name}
-                  onChange={(e) => dispatch(updateCategory({ ...cat, name: e.target.value }))}
+                  placeholder="Bölüm adı (ör. Tatlılar)"
+                  value={newCategoryName}
+                  onChange={(e) => setNewCategoryName(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleAddCategory()}
                 />
-                <button
-                  className="btn btn-sm btn-outline-danger"
-                  onClick={() =>
-                    setConfirmState({
-                      title: "Bölümü sil",
-                      message: `"${cat.name}" bölümü ve içindeki tüm ürünler silinsin mi?`,
-                      onConfirm: () => {
-                        dispatch(deleteCategory(cat.id));
-                        closeConfirm();
-                      },
-                    })
-                  }
-                >
-                  🗑
+                <button className="btn btn-sm btn-add text-nowrap" onClick={handleAddCategory}>
+                  Ekle
                 </button>
               </div>
-            ))}
-            <div className="d-flex gap-2 mt-3">
-              <input
-                className="form-control form-control-sm"
-                placeholder="Yeni bölüm adı"
-                value={newCategoryName}
-                onChange={(e) => setNewCategoryName(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleAddCategory()}
-              />
-              <button className="btn btn-sm btn-add" onClick={handleAddCategory}>
-                Ekle
-              </button>
-            </div>
-          </section>
+            </section>
+          </>
         )}
 
-        {/* ===== 3) Ürünler ===== */}
-        {tab === "urunler" && (
-          <div className="row g-4">
-            <div className="col-lg-6">
-              <section className="admin-card h-100">
-                <h2 className="admin-card-title">
-                  {editingId ? "Ürünü düzenle" : "Yeni ürün ekle"}
-                </h2>
-                <div className="row g-2 mb-2">
-                  <div className="col-9">
-                    <input
-                      className="form-control form-control-sm"
-                      placeholder="Ürün adı *"
-                      value={form.name}
-                      onChange={(e) => setForm({ ...form, name: e.target.value })}
-                    />
-                  </div>
-                  <div className="col-3">
-                    <input
-                      className="form-control form-control-sm"
-                      placeholder="Emoji"
-                      value={form.emoji}
-                      onChange={(e) => setForm({ ...form, emoji: e.target.value })}
-                    />
-                  </div>
-                  <div className="col-12">
-                    <textarea
-                      className="form-control form-control-sm"
-                      placeholder="Açıklama (ürünün ne olduğu)"
-                      rows={2}
-                      value={form.description}
-                      onChange={(e) => setForm({ ...form, description: e.target.value })}
-                    />
-                  </div>
-                  <div className="col-12">
-                    <input
-                      className="form-control form-control-sm"
-                      placeholder="Fotoğraf URL (isteğe bağlı)"
-                      value={form.image}
-                      onChange={(e) => setForm({ ...form, image: e.target.value })}
-                    />
-                    <small className="text-muted">
-                      Boş bırakılırsa emoji gösterilir. Telifsiz fotoğraf için
-                      commons.wikimedia.org veya unsplash.com kullanabilirsiniz.
-                    </small>
-                  </div>
-                  <div className="col-12">
-                    <select
-                      className="form-select form-select-sm"
-                      value={form.categoryId}
-                      onChange={(e) => setForm({ ...form, categoryId: e.target.value })}
-                    >
-                      <option value="">Bölüm seçin *</option>
-                      {categories.map((cat) => (
-                        <option key={cat.id} value={cat.id}>
-                          {cat.emoji} {cat.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="col-4">
-                    <input
-                      className="form-control form-control-sm"
-                      type="number"
-                      placeholder="Fiyat ₺ *"
-                      value={form.price}
-                      onChange={(e) => setForm({ ...form, price: e.target.value })}
-                    />
-                  </div>
-                  <div className="col-4">
-                    <input
-                      className="form-control form-control-sm"
-                      type="number"
-                      placeholder="Gramaj"
-                      value={form.grams}
-                      onChange={(e) => setForm({ ...form, grams: e.target.value })}
-                    />
-                  </div>
-                  <div className="col-4">
-                    <input
-                      className="form-control form-control-sm"
-                      type="number"
-                      placeholder="Kalori"
-                      value={form.calories}
-                      onChange={(e) => setForm({ ...form, calories: e.target.value })}
-                    />
-                  </div>
-                </div>
-                <div className="d-flex gap-2">
-                  <button
-                    className="btn btn-sm btn-add flex-grow-1"
-                    disabled={!isFormValid}
-                    onClick={saveProduct}
-                  >
-                    {editingId ? "Değişiklikleri kaydet" : "Ürünü ekle"}
-                  </button>
-                  {editingId && (
-                    <button
-                      className="btn btn-sm btn-outline-secondary"
-                      onClick={() => {
-                        setEditingId(null);
-                        setForm(emptyForm);
-                      }}
-                    >
-                      Vazgeç
-                    </button>
-                  )}
-                </div>
-              </section>
-            </div>
-
-            <div className="col-lg-6">
-              <section className="admin-card h-100">
-                <h2 className="admin-card-title">
-                  Mevcut ürünler <span className="admin-count-badge">{products.length}</span>
-                </h2>
-                <div className="admin-product-list">
-                  {products.map((product) => (
-                    <div key={product.id} className="admin-product-row">
-                      <span className="flex-grow-1">
-                        {product.emoji} {product.name}{" "}
-                        <small className="text-muted">— {product.price} ₺</small>
-                      </span>
-                      <button
-                        className="btn btn-sm btn-outline-secondary"
-                        onClick={() => startEditing(product)}
-                      >
-                        ✏️
-                      </button>
-                      <button
-                        className="btn btn-sm btn-outline-danger"
-                        onClick={() =>
-                          setConfirmState({
-                            title: "Ürünü sil",
-                            message: `"${product.name}" silinsin mi?`,
-                            onConfirm: () => {
-                              dispatch(deleteProduct(product.id));
-                              closeConfirm();
-                            },
-                          })
-                        }
-                      >
-                        🗑
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            </div>
-          </div>
-        )}
-
-        {/* ===== 4) Gelişmiş / tehlikeli işlemler ===== */}
+        {/* ===== 3) Gelişmiş / tehlikeli işlemler ===== */}
         {tab === "gelismis" && (
           <section className="admin-card admin-card-danger">
             <h2 className="admin-card-title">Menüyü fabrika ayarlarına döndür</h2>
@@ -453,6 +366,15 @@ function AdminDashboard() {
           </section>
         )}
       </div>
+
+      <ProductFormModal
+        open={productModal !== null}
+        categories={categories}
+        editingProduct={productModal?.product ?? null}
+        defaultCategoryId={productModal?.categoryId}
+        onSubmit={handleProductSubmit}
+        onClose={() => setProductModal(null)}
+      />
 
       <ConfirmModal
         open={confirmState !== null}
