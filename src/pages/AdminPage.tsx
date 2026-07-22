@@ -234,6 +234,23 @@ function AdminDashboard() {
               ekleyin, düzenleyin ya da silin.
             </p>
 
+            {/* Yeni bölüm ekle */}
+            <section className="admin-card mb-3">
+              <h2 className="admin-card-title">Yeni bölüm ekle</h2>
+              <div className="d-flex gap-2">
+                <input
+                  className="form-control form-control-sm"
+                  placeholder="Bölüm adı (ör. Tatlılar)"
+                  value={newCategoryName}
+                  onChange={(e) => setNewCategoryName(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleAddCategory()}
+                />
+                <button className="btn btn-sm btn-add text-nowrap" onClick={handleAddCategory}>
+                  Ekle
+                </button>
+              </div>
+            </section>
+
             <div className="category-accordion mb-3">
               {categories.map((cat) => {
                 const catProducts = products.filter((p) => p.categoryId === cat.id);
@@ -319,23 +336,6 @@ function AdminDashboard() {
                 );
               })}
             </div>
-
-            {/* Yeni bölüm ekle */}
-            <section className="admin-card">
-              <h2 className="admin-card-title">Yeni bölüm ekle</h2>
-              <div className="d-flex gap-2">
-                <input
-                  className="form-control form-control-sm"
-                  placeholder="Bölüm adı (ör. Tatlılar)"
-                  value={newCategoryName}
-                  onChange={(e) => setNewCategoryName(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleAddCategory()}
-                />
-                <button className="btn btn-sm btn-add text-nowrap" onClick={handleAddCategory}>
-                  Ekle
-                </button>
-              </div>
-            </section>
           </>
         )}
 
