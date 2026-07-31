@@ -61,19 +61,31 @@ backend/
 PIN gerektiren uçlara istek atarken `X-Admin-Pin: 1234` header'ını
 eklemeniz gerekir (değer `.env`'deki `ADMIN_PIN` ile aynı olmalı).
 
-## Bir sonraki adım: frontend'e bağlamak
+Frontend (`src/store/api.ts` ve `menuSlice.ts`) bu backend'i zaten
+kullanıyor — `VITE_API_URL` ortam değişkeniyle adresini bulur
+(yerelde varsayılan `http://localhost:8000`).
 
-Bu backend şu an bağımsız çalışıyor; `src/store/menuSlice.ts` henüz
-localStorage kullanmaya devam ediyor. Bağlamak için `loadInitialState`
-fonksiyonunu `fetch('/api/menu')`'a, `saveMenuState`'i ilgili
-POST/PUT/DELETE çağrılarına çevirmek yeterli — veri şekli (camelCase
-alan adları) zaten birebir eşleşiyor.
-
-## Canlıya alma (deploy)
+## Canlıya alma (deploy) — Render
 
 Vercel sadece statik/frontend barındırır; bu Python sunucusu ayrı bir
-yerde çalışmalı — [Render](https://render.com) veya
-[Railway](https://railway.app) ücretsiz katmanları uygundur
-(`uvicorn main:app --host 0.0.0.0 --port $PORT` ile başlatılır).
-Adresi aldıktan sonra `.env`'deki `CORS_ORIGINS`'e Vercel adresinizi
-eklemeyi unutmayın.
+yerde çalışmalı. `render.yaml` [Render](https://render.com) için hazır
+bir "Blueprint": hesabınızı GitHub'a bağladıktan sonra Render panelinde
+**New + → Blueprint** deyip bu depoyu seçmeniz yeterli, geri kalanı
+(`build`/`start` komutları, `rootDir: backend`) dosyadan otomatik okunur.
+Tek elle gireceğiniz şey `ADMIN_PIN` ortam değişkeni (panelde "Secret"
+olarak sorulur).
+
+Deploy bitince Render size `https://nar-lokantasi-api.onrender.com`
+gibi bir adres verir. Sonra:
+
+1. Vercel projenizde *Settings → Environment Variables*'a
+   `VITE_API_URL=<render adresiniz>` ekleyip yeniden deploy edin.
+2. Render'daki `CORS_ORIGINS` değişkeninin Vercel adresinizi
+   içerdiğinden emin olun (`render.yaml`'da zaten var, adresiniz
+   değişirse güncelleyin).
+
+⚠️ **Render ücretsiz katmanının sınırı:** Disk kalıcı değildir — servis
+15 dakika işlemsiz kalıp "uyuyup" tekrar uyandığında `menu.db` sıfırlanabilir.
+Bir staj demosu için sorun değildir (`/api/menu/reset` zaten var), ama
+gerçek bir restoranda kalıcı depolama için Render'ın ücretli disk
+eklentisi ya da yönetilen bir Postgres (Render/Supabase) gerekir.

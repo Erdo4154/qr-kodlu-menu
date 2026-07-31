@@ -33,7 +33,7 @@ interface ProductFormModalProps {
   categories: Category[];
   editingProduct: Product | null; // null = yeni ürün
   defaultCategoryId?: string;
-  onSubmit: (values: ProductFormValues) => void;
+  onSubmit: (values: ProductFormValues) => Promise<void> | void;
   onClose: () => void;
 }
 
@@ -46,10 +46,13 @@ export default function ProductFormModal({
   onClose,
 }: ProductFormModalProps) {
   const [form, setForm] = useState<ProductFormValues>(emptyForm);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Modal her açıldığında (yeni ürün ya da farklı bir ürün için) formu tazele.
   useEffect(() => {
     if (!open) return;
+    setError(null);
     setForm(
       editingProduct
         ? {
@@ -70,9 +73,16 @@ export default function ProductFormModal({
 
   const isValid = form.name.trim() !== "" && form.categoryId !== "" && form.price !== "";
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!isValid) return;
-    onSubmit(form);
+    setSaving(true);
+    setError(null);
+    try {
+      await onSubmit(form);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Bir hata oluştu.");
+      setSaving(false);
+    }
   };
 
   return (
@@ -173,12 +183,22 @@ export default function ProductFormModal({
           </div>
         </div>
 
+        {error && <p className="confirm-error">{error}</p>}
+
         <div className="d-flex gap-2 mt-2">
-          <button className="btn btn-outline-secondary flex-grow-1" onClick={onClose}>
+          <button
+            className="btn btn-outline-secondary flex-grow-1"
+            onClick={onClose}
+            disabled={saving}
+          >
             Vazgeç
           </button>
-          <button className="btn btn-add flex-grow-1" disabled={!isValid} onClick={handleSubmit}>
-            {editingProduct ? "Değişiklikleri kaydet" : "Ürünü ekle"}
+          <button
+            className="btn btn-add flex-grow-1"
+            disabled={!isValid || saving}
+            onClick={handleSubmit}
+          >
+            {saving ? "Kaydediliyor…" : editingProduct ? "Değişiklikleri kaydet" : "Ürünü ekle"}
           </button>
         </div>
       </div>

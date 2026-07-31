@@ -38,3 +38,10 @@ export interface CartItem {
   productId: string;
   quantity: number;
 }
+
+/** Backend'in GET /api/menu ile döndürdüğü tam menü durumu. */
+export interface MenuState {
+  restaurant: RestaurantInfo;
+  categories: Category[];
+  products: Product[];
+}

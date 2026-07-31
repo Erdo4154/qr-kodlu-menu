@@ -9,15 +9,15 @@
 //     (akordeon), oradan doğrudan ekleme/düzenleme/silme yapılır
 //   • Menüyü fabrika ayarlarına döndürme
 //
-// Yapılan her değişiklik Redux'a, oradan da localStorage'a yazılır;
-// sayfa yenilense bile kaybolmaz (yalnızca o cihazda — README'ye bakın).
-//
-// Basit bir PIN koruması var (varsayılan: 1234). Gerçek bir üründe
-// bunun yerine sunucu taraflı kimlik doğrulama gerekir.
+// PIN artık backend'de doğrulanır (bkz. backend/auth.py) — istemci
+// kodunda sabit bir PIN yok. Doğrulanan PIN, yazma isteklerinde
+// X-Admin-Pin header'ı olarak gönderilmek üzere bellekte (state)
+// tutulur; sayfa yenilenince tekrar girilmesi gerekir.
 // ---------------------------------------------------------------
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
+import { api } from "../store/api";
 import {
   updateRestaurant,
   addProduct,
@@ -28,25 +28,42 @@ import {
   deleteCategory,
   resetMenu,
 } from "../store/menuSlice";
-import type { Product } from "../types";
+import type { Product, RestaurantInfo } from "../types";
 import ConfirmModal from "../components/ConfirmModal";
 import ProductFormModal, { type ProductFormValues } from "../components/ProductFormModal";
-
-const ADMIN_PIN = "1234"; // Demo amaçlı. Değiştirmeyi unutmayın!
 
 type Tab = "restoran" | "menu" | "gelismis";
 
 export default function AdminPage() {
-  const [unlocked, setUnlocked] = useState(false);
   const [pinInput, setPinInput] = useState("");
+  const [verifiedPin, setVerifiedPin] = useState<string | null>(null);
+  const [verifying, setVerifying] = useState(false);
+  const [pinError, setPinError] = useState<string | null>(null);
 
-  if (!unlocked) {
+  const handleLogin = async () => {
+    if (!pinInput || verifying) return;
+    setVerifying(true);
+    setPinError(null);
+    try {
+      const { valid } = await api.verifyPin(pinInput);
+      if (valid) {
+        setVerifiedPin(pinInput);
+      } else {
+        setPinError("PIN hatalı.");
+      }
+    } catch (e) {
+      setPinError(e instanceof Error ? e.message : "Sunucuya ulaşılamadı.");
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  if (!verifiedPin) {
     return (
       <div className="admin-gate">
         <div className="admin-gate-card">
           <p className="admin-gate-kicker">Yönetici Girişi</p>
           <h1 className="admin-gate-title">Menüyü düzenlemek için giriş yap</h1>
-          <p className="text-muted small mb-3">Demo PIN: 1234</p>
           <input
             className="form-control mb-2"
             type="password"
@@ -54,19 +71,12 @@ export default function AdminPage() {
             placeholder="PIN"
             value={pinInput}
             onChange={(e) => setPinInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && pinInput === ADMIN_PIN) setUnlocked(true);
-            }}
+            onKeyDown={(e) => e.key === "Enter" && handleLogin()}
           />
-          <button
-            className="btn btn-add w-100 mb-2"
-            onClick={() => pinInput === ADMIN_PIN && setUnlocked(true)}
-          >
-            Giriş yap
+          <button className="btn btn-add w-100 mb-2" onClick={handleLogin} disabled={verifying}>
+            {verifying ? "Kontrol ediliyor…" : "Giriş yap"}
           </button>
-          {pinInput !== "" && pinInput !== ADMIN_PIN && (
-            <small className="text-danger d-block mb-2">PIN hatalı.</small>
-          )}
+          {pinError && <small className="text-danger d-block mb-2">{pinError}</small>}
           <Link to="/" className="small">
             ← Siteye dön
           </Link>
@@ -75,19 +85,15 @@ export default function AdminPage() {
     );
   }
 
-  return <AdminDashboard />;
+  return <AdminDashboard pin={verifiedPin} />;
 }
 
-function AdminDashboard() {
+function AdminDashboard({ pin }: { pin: string }) {
   const dispatch = useAppDispatch();
   const { restaurant, categories, products } = useAppSelector((s) => s.menu);
 
   const [tab, setTab] = useState<Tab>("restoran");
-  const [newCategoryName, setNewCategoryName] = useState("");
-  // Akordeon: aynı anda tek bölüm açık kalır. null = hepsi kapalı.
   const [expandedCategoryId, setExpandedCategoryId] = useState<string | null>(null);
-  // Ürün formu modalı: hangi bölümden açıldığını ve (varsa) hangi ürünü
-  // düzenlediğini tutar. null = kapalı.
   const [productModal, setProductModal] = useState<{
     categoryId: string;
     product: Product | null;
@@ -96,26 +102,62 @@ function AdminDashboard() {
     title: string;
     message: string;
     confirmLabel?: string;
-    onConfirm: () => void;
+    onConfirm: () => Promise<void>;
   } | null>(null);
   const closeConfirm = () => setConfirmState(null);
 
-  const handleAddCategory = () => {
-    if (!newCategoryName.trim()) return;
-    dispatch(
-      addCategory({
-        name: newCategoryName.trim(),
-        tagline: "",
-        emoji: "📋",
-        accent: ["#2F5D50", "#9E2B25", "#1F4E79", "#B07D2B", "#5B3A70"][
-          categories.length % 5
-        ],
-      })
+  // --- Menü sekmesindeki "hızlı" işlemler (bölüm ekle/yeniden adlandır) için ortak hata durumu ---
+  const [menuActionError, setMenuActionError] = useState<string | null>(null);
+  const runMenuAction = async (action: Promise<unknown>) => {
+    try {
+      await action;
+      setMenuActionError(null);
+    } catch (e) {
+      setMenuActionError(e instanceof Error ? e.message : "İşlem başarısız oldu.");
+    }
+  };
+
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [addingCategory, setAddingCategory] = useState(false);
+  const handleAddCategory = async () => {
+    if (!newCategoryName.trim() || addingCategory) return;
+    setAddingCategory(true);
+    await runMenuAction(
+      dispatch(
+        addCategory({
+          pin,
+          data: {
+            name: newCategoryName.trim(),
+            tagline: "",
+            emoji: "📋",
+            accent: ["#2F5D50", "#9E2B25", "#1F4E79", "#B07D2B", "#5B3A70"][categories.length % 5],
+          },
+        })
+      ).unwrap()
     );
+    setAddingCategory(false);
     setNewCategoryName("");
   };
 
-  const handleProductSubmit = (values: ProductFormValues) => {
+  // --- Restoran bilgileri: yazarken bekletmemek için yerel form, kaydetme onBlur'da ---
+  const [restaurantForm, setRestaurantForm] = useState<RestaurantInfo>(restaurant);
+  const [restaurantSaving, setRestaurantSaving] = useState(false);
+  useEffect(() => setRestaurantForm(restaurant), [restaurant]);
+
+  const saveRestaurant = async () => {
+    if (
+      restaurantForm.name === restaurant.name &&
+      restaurantForm.slogan === restaurant.slogan &&
+      restaurantForm.heroImage === restaurant.heroImage
+    ) {
+      return;
+    }
+    setRestaurantSaving(true);
+    await runMenuAction(dispatch(updateRestaurant({ pin, data: restaurantForm })).unwrap());
+    setRestaurantSaving(false);
+  };
+
+  const handleProductSubmit = async (values: ProductFormValues) => {
     const data = {
       name: values.name.trim(),
       description: values.description.trim(),
@@ -128,9 +170,9 @@ function AdminDashboard() {
     };
 
     if (productModal?.product) {
-      dispatch(updateProduct({ id: productModal.product.id, ...data }));
+      await dispatch(updateProduct({ pin, product: { id: productModal.product.id, ...data } })).unwrap();
     } else {
-      dispatch(addProduct(data));
+      await dispatch(addProduct({ pin, data })).unwrap();
     }
     setProductModal(null);
   };
@@ -139,8 +181,8 @@ function AdminDashboard() {
     setConfirmState({
       title: "Bölümü sil",
       message: `"${categoryName}" bölümü ve içindeki tüm ürünler silinsin mi?`,
-      onConfirm: () => {
-        dispatch(deleteCategory(categoryId));
+      onConfirm: async () => {
+        await dispatch(deleteCategory({ pin, id: categoryId })).unwrap();
         closeConfirm();
       },
     });
@@ -150,8 +192,8 @@ function AdminDashboard() {
     setConfirmState({
       title: "Ürünü sil",
       message: `"${productName}" silinsin mi?`,
-      onConfirm: () => {
-        dispatch(deleteProduct(productId));
+      onConfirm: async () => {
+        await dispatch(deleteProduct({ pin, id: productId })).unwrap();
         closeConfirm();
       },
     });
@@ -198,31 +240,35 @@ function AdminDashboard() {
           <section className="admin-card">
             <h2 className="admin-card-title">Restoran bilgileri</h2>
             <p className="admin-card-hint">
-              Bu bilgiler müşterinin gördüğü üst şeritte anında görünür.
+              Bu bilgiler müşterinin gördüğü üst şeritte anında görünür. Bir alandan çıkınca
+              (tab/tıklama) otomatik kaydedilir.
             </p>
             <label className="form-label small fw-semibold">Restoran adı</label>
             <input
               className="form-control mb-3"
-              value={restaurant.name}
-              onChange={(e) => dispatch(updateRestaurant({ ...restaurant, name: e.target.value }))}
+              value={restaurantForm.name}
+              onChange={(e) => setRestaurantForm({ ...restaurantForm, name: e.target.value })}
+              onBlur={saveRestaurant}
               placeholder="Restoran adı"
             />
             <label className="form-label small fw-semibold">Slogan</label>
             <input
               className="form-control mb-3"
-              value={restaurant.slogan}
-              onChange={(e) => dispatch(updateRestaurant({ ...restaurant, slogan: e.target.value }))}
+              value={restaurantForm.slogan}
+              onChange={(e) => setRestaurantForm({ ...restaurantForm, slogan: e.target.value })}
+              onBlur={saveRestaurant}
               placeholder="Slogan"
             />
             <label className="form-label small fw-semibold">Kapak fotoğrafı URL</label>
             <input
               className="form-control"
-              value={restaurant.heroImage ?? ""}
-              onChange={(e) =>
-                dispatch(updateRestaurant({ ...restaurant, heroImage: e.target.value }))
-              }
+              value={restaurantForm.heroImage ?? ""}
+              onChange={(e) => setRestaurantForm({ ...restaurantForm, heroImage: e.target.value })}
+              onBlur={saveRestaurant}
               placeholder="https://... (üst şerit arka planı)"
             />
+            {restaurantSaving && <small className="text-muted d-block mt-2">Kaydediliyor…</small>}
+            {menuActionError && <p className="confirm-error mt-2">{menuActionError}</p>}
           </section>
         )}
 
@@ -234,6 +280,8 @@ function AdminDashboard() {
               ekleyin, düzenleyin ya da silin.
             </p>
 
+            {menuActionError && <p className="confirm-error">{menuActionError}</p>}
+
             {/* Yeni bölüm ekle */}
             <section className="admin-card mb-3">
               <h2 className="admin-card-title">Yeni bölüm ekle</h2>
@@ -244,9 +292,14 @@ function AdminDashboard() {
                   value={newCategoryName}
                   onChange={(e) => setNewCategoryName(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleAddCategory()}
+                  disabled={addingCategory}
                 />
-                <button className="btn btn-sm btn-add text-nowrap" onClick={handleAddCategory}>
-                  Ekle
+                <button
+                  className="btn btn-sm btn-add text-nowrap"
+                  onClick={handleAddCategory}
+                  disabled={addingCategory}
+                >
+                  {addingCategory ? "Ekleniyor…" : "Ekle"}
                 </button>
               </div>
             </section>
@@ -280,11 +333,16 @@ function AdminDashboard() {
                         <div className="d-flex gap-2 mb-3 align-items-center">
                           <input
                             className="form-control form-control-sm"
-                            value={cat.name}
-                            onChange={(e) =>
-                              dispatch(updateCategory({ ...cat, name: e.target.value }))
-                            }
+                            defaultValue={cat.name}
                             onClick={(e) => e.stopPropagation()}
+                            onBlur={(e) => {
+                              const newName = e.target.value.trim();
+                              if (newName && newName !== cat.name) {
+                                runMenuAction(
+                                  dispatch(updateCategory({ pin, category: { ...cat, name: newName } })).unwrap()
+                                );
+                              }
+                            }}
                           />
                           <button
                             className="btn btn-sm btn-outline-danger text-nowrap"
@@ -354,8 +412,8 @@ function AdminDashboard() {
                   title: "Menüyü sıfırla",
                   message: "Tüm değişiklikler silinip örnek menüye dönülsün mü? Bu işlem geri alınamaz.",
                   confirmLabel: "Evet, sıfırla",
-                  onConfirm: () => {
-                    dispatch(resetMenu());
+                  onConfirm: async () => {
+                    await dispatch(resetMenu({ pin })).unwrap();
                     closeConfirm();
                   },
                 })
@@ -382,7 +440,7 @@ function AdminDashboard() {
         message={confirmState?.message ?? ""}
         confirmLabel={confirmState?.confirmLabel}
         danger
-        onConfirm={() => confirmState?.onConfirm()}
+        onConfirm={() => confirmState?.onConfirm() ?? Promise.resolve()}
         onCancel={closeConfirm}
       />
     </div>
