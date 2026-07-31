@@ -43,7 +43,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Nar Lokantası Menü API", lifespan=lifespan)
 
-_default_origins = "http://localhost:5173,https://qr-kodlu-menu-qwu6-rose.vercel.app"
+_default_origins = "http://localhost:5173,https://qr-kodlu-menu-beta.vercel.app"
 origins = [o.strip() for o in os.getenv("CORS_ORIGINS", _default_origins).split(",")]
 
 app.add_middleware(

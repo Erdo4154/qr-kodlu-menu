@@ -12,4 +12,4 @@ services:
       - key: ADMIN_PIN
         sync: false # Render panelinde elle girilir, repoya yazılmaz
       - key: CORS_ORIGINS
-        value: https://qr-kodlu-menu-qwu6-rose.vercel.app,http://localhost:5173
+        value: https://qr-kodlu-menu-beta.vercel.app,http://localhost:5173
