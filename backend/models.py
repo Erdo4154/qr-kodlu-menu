@@ -16,7 +16,7 @@ class Category(SQLModel, table=True):
     name: str
     tagline: str = ""
     accent: str
-    emoji: str = "📋"
+    emoji: str = ""
 
 
 class Product(SQLModel, table=True):
@@ -27,7 +27,7 @@ class Product(SQLModel, table=True):
     calories: int = 0
     grams: int = 0
     price: float = 0
-    emoji: str = "🍽️"
+    emoji: str = ""
     image: Optional[str] = None
 
 

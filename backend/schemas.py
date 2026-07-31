@@ -18,7 +18,7 @@ class CategoryCreate(SQLModel):
     name: str
     tagline: str = ""
     accent: str
-    emoji: str = "📋"
+    emoji: str = ""
 
 
 class CategoryUpdate(CategoryCreate):
@@ -32,7 +32,7 @@ class ProductCreate(SQLModel):
     calories: int = 0
     grams: int = 0
     price: float = 0
-    emoji: str = "🍽️"
+    emoji: str = ""
     image: Optional[str] = None
 
 
