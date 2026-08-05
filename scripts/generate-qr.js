@@ -2,7 +2,7 @@
 import QRCode from "qrcode";
 import path from "node:path";
 
-const url = process.argv[2] ?? "https://qr-kodlu-menu-qwu6-rose.vercel.app/git.html";
+const url = process.argv[2] ?? "https://qr-kodlu-menu-beta.vercel.app/git.html";
 const out = path.resolve(process.argv[3] ?? "qr-kod.png");
 
 await QRCode.toFile(out, url, {

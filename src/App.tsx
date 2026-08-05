@@ -35,12 +35,12 @@ export default function App() {
     return (
       <div className="boot-screen">
         <div className="boot-card">
-          <p className="boot-error-title">Menüye ulaşılamadı</p>
+          <p className="boot-error-title">Menüye ulaşılamadı!</p>
           <p className="text-muted small">
             {error ?? "Sunucuya bağlanılamadı."} Backend'in çalıştığından emin olun.
           </p>
           <button className="btn btn-add" onClick={() => dispatch(fetchMenu())}>
-            Tekrar dene
+            Tekrar deneyin
           </button>
         </div>
       </div>
