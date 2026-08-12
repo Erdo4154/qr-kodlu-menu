@@ -13,11 +13,17 @@ import time
 from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
-from fastapi import Depends, FastAPI, HTTPException
+
+# auth.py, import edilir edilmez ADMIN_PIN'i ortam değişkeninden okur;
+# .env'in o ana kadar yüklenmiş olması için diğer yerel import'lardan
+# önce çalışması şart.
+load_dotenv()
+
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import Session, select
 
-from auth import ADMIN_PIN, require_admin_pin
+from auth import check_pin, require_admin_pin
 from database import engine, get_session, init_db
 from models import Category, Product, Restaurant
 from schemas import (
@@ -29,8 +35,6 @@ from schemas import (
     RestaurantUpdate,
 )
 from seed import reseed, seed_if_empty
-
-load_dotenv()
 
 
 @asynccontextmanager
@@ -75,8 +79,8 @@ def reset_menu(session: Session = Depends(get_session)):
 
 # ================= Admin =================
 @app.post("/api/admin/verify")
-def verify_pin(payload: PinCheck):
-    return {"valid": payload.pin == ADMIN_PIN}
+def verify_pin(payload: PinCheck, request: Request):
+    return {"valid": check_pin(request, payload.pin)}
 
 
 # ================= Restoran =================

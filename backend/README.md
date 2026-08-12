@@ -58,8 +58,13 @@ backend/
 | DELETE | `/api/products/{id}` | Ürünü siler | Evet |
 | POST | `/api/menu/reset` | Tüm menüyü örnek veriyle değiştirir | Evet |
 
-PIN gerektiren uçlara istek atarken `X-Admin-Pin: 1234` header'ını
+PIN gerektiren uçlara istek atarken `X-Admin-Pin: <PIN>` header'ını
 eklemeniz gerekir (değer `.env`'deki `ADMIN_PIN` ile aynı olmalı).
+`ADMIN_PIN` **zorunludur** — tanımlı değilse sunucu açılışta hata verip
+durur (kodun içinde bilerek yedek/varsayılan bir değer yok, GitHub
+public olduğu için biri okuyup deneyebilir). Aynı IP'den 60 saniye
+içinde 5'ten fazla yanlış PIN denenirse o IP 5 dakika engellenir
+(`auth.py`'deki basit kaba kuvvet koruması).
 
 Frontend (`src/store/api.ts` ve `menuSlice.ts`) bu backend'i zaten
 kullanıyor — `VITE_API_URL` ortam değişkeniyle adresini bulur

@@ -24,7 +24,7 @@ npm run dev                   # http://localhost:5173
 
 Detaylar (uçlar, PIN, deploy) için `backend/README.md`.
 
-Yönetici paneli PIN'i: **1234** (backend'de `.env`'deki `ADMIN_PIN`; istemci kodunda artık hiç geçmiyor).
+Yönetici paneli PIN'i backend'de `.env`'deki `ADMIN_PIN`'de tanımlanır (istemci kodunda hiç geçmez) ve **zorunludur** — tanımlı değilse sunucu açılmaz. `backend/.env.example`'ı kopyalayıp kendi PIN'inizi seçin.
 
 ## Klasör yapısı
 
